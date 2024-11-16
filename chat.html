@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    #messages { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; }
+    #form { display: flex; margin-top: 10px; }
+    #input { flex: 1; padding: 10px; }
+    #send { padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Chat with <span id="recipient"></span></h1>
+  <div id="messages"></div>
+  <div id="form">
+    <input id="input" autocomplete="off" placeholder="Type a message" />
+    <button id="send">Send</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const urlParams = new URLSearchParams(window.location.search);
+    const recipient = urlParams.get("to");
+    const loggedInUser = urlParams.get("from");
+
+    const messagesDiv = document.getElementById("messages");
+    const input = document.getElementById("input");
+    const sendBtn = document.getElementById("send");
+
+    document.getElementById("recipient").textContent = recipient;
+
+    // Send a message
+    sendBtn.onclick = () => {
+      const message = input.value;
+      if (message) {
+        socket.emit("sendMessage", { to: recipient, from: loggedInUser, message });
+        const div = document.createElement("div");
+        div.textContent = `You: ${message}`;
+        messagesDiv.appendChild(div);
+        input.value = "";
+      }
+    };
+
+    // Receive a message
+    socket.on("receiveMessage", ({ from, message }) => {
+      if (from === recipient) {
+        const div = document.createElement("div");
+        div.textContent = `${from}: ${message}`;
+        messagesDiv.appendChild(div);
+      }
+    });
+
+    // Notify the server about the current user
+    socket.emit("login", loggedInUser);
+  </script>
+</body>
+</html>

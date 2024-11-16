@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    #login { margin-bottom: 20px; }
+    #users { margin-top: 20px; }
+    li { cursor: pointer; color: blue; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <div id="login">
+    <h1>Login</h1>
+    <input id="email" placeholder="Enter your email" />
+    <button id="loginBtn">Login</button>
+  </div>
+
+  <div id="chat">
+    <h2>Logged in as: <span id="loggedInUser"></span></h2>
+    <h2>Online Users</h2>
+    <ul id="users"></ul>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const emailInput = document.getElementById("email");
+    const loginBtn = document.getElementById("loginBtn");
+    const loggedInUserSpan = document.getElementById("loggedInUser");
+    const usersList = document.getElementById("users");
+    const loginDiv = document.getElementById("login");
+    const chatDiv = document.getElementById("chat");
+
+    chatDiv.style.display = "none"; // Hide the chat section initially
+
+    let loggedInUser = null;
+
+    // Login
+    loginBtn.onclick = async () => {
+      const email = emailInput.value;
+      if (!email) return alert("Enter an email!");
+
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (res.ok) {
+        loggedInUser = email;
+        socket.emit("login", email);
+
+        // Update UI to show logged-in user
+        loggedInUserSpan.textContent = email;
+        loginDiv.style.display = "none";
+        chatDiv.style.display = "block";
+      }
+    };
+
+    // Update online users in real-time
+    socket.on("updateUsers", (users) => {
+      usersList.innerHTML = ""; // Clear the current list
+      users.forEach((user) => {
+        if (user !== loggedInUser) {
+          const li = document.createElement("li");
+          li.textContent = user;
+          li.onclick = () => {
+            window.open(`/chat?to=${user}&from=${loggedInUser}`, "_blank");
+           };
+          usersList.appendChild(li);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
